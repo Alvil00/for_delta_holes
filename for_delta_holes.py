@@ -13,6 +13,7 @@ try:
 	import numpy as np
 except ImportError:
 	np = None
+	print("Oops,routine can't find numpy! Try to connect with IT dep and install numpy module else you cant calculate the weakness ratio of your head!")
 
 import random
 import collections
@@ -645,22 +646,23 @@ class Hole:
 
 def fi_calc_macro(p: Plita, filename: str = "fig.png", fn: int = 7, acc_lin: float = 1.0, sp_kwargs: dict = None) \
 		-> None:
-	if acc_lin <= 0.0:
-		raise ValueError("Linear accuracy must be greater than zero.")
-	if sp_kwargs is None:
-		sp_kwargs = dict()
-	if sp_kwargs.get("debug"):
-		sp_kwargs.pop("debug")
-	acc_lin_ = math.ceil(1 / acc_lin)
-	print("factorisation...")
-	p.factorise(fn)
-	print("calculating fi..")
-	preliminary_angle = p.calc_fi()[1]
-	a = (math.floor(preliminary_angle) - 0.5, math.ceil(preliminary_angle) + 0.5)
-	print("fi:{res[0]:<7.5f}\tangle_deg:{res[1]:<6.2f}\tlength:{res[2]:<8.1f}".format(
-		res=p.calc_fi(a[0], a[1], 2 * acc_lin_, 16)))
-	print("s_assumption:{res[0]:<7.3f}\ns_calculated:{res[1]:<7.3f}\ns_total:{res[2]:<7.3f}".format(res=p.calc_s()))
-	p.save_pic(filename, **sp_kwargs)
+	if np:
+		if acc_lin <= 0.0:
+			raise ValueError("Linear accuracy must be greater than zero.")
+		if sp_kwargs is None:
+			sp_kwargs = dict()
+		if sp_kwargs.get("debug"):
+			sp_kwargs.pop("debug")
+		acc_lin_ = math.ceil(1 / acc_lin)
+		print("factorisation...")
+		p.factorise(fn)
+		print("calculating fi..")
+		preliminary_angle = p.calc_fi()[1]
+		a = (math.floor(preliminary_angle) - 0.5, math.ceil(preliminary_angle) + 0.5)
+		print("fi:{res[0]:<7.5f}\tangle_deg:{res[1]:<6.2f}\tlength:{res[2]:<8.1f}".format(
+			res=p.calc_fi(a[0], a[1], 2 * acc_lin_, 16)))
+		print("s_assumption:{res[0]:<7.3f}\ns_calculated:{res[1]:<7.3f}\ns_total:{res[2]:<7.3f}".format(res=p.calc_s()))
+		p.save_pic(filename, **sp_kwargs)
 
 
 def example():
