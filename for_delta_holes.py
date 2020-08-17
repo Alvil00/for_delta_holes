@@ -19,6 +19,7 @@ import collections
 import weakref
 import math
 
+
 if plt:
 	GOST_FONT_FILE_NAME = "GOST.ttf"
 	GOST_FONT = fm.FontProperties(fname=GOST_FONT_FILE_NAME)
@@ -97,14 +98,33 @@ class AreaNode(object):
 			_tga = _vec[0] / _vec[1]
 		except ZeroDivisionError:
 			_tga = math.inf
-		if _tga > 1 or _tga < -1 or _tga == math.inf:
+		if _tga > 1.0 or _tga < -1.0 or _tga == math.inf:
 			_vec = _vec[0] - math.copysign(_semilength[0], _vec[0]), _vec[1] * (1 - abs(_semilength[0] / _vec[0]))
+			if abs(_vec[0]) <= hole.diam / 2:
+				if self.center[1] - _semilength[1] <= hole.pos[1] <= self.center[1] + _semilength[1]:
+					return True
+			else:
+				return False
 		else:
 			_vec = _vec[0] * (1 - abs(_semilength[1] / _vec[1])), _vec[1] - math.copysign(_semilength[1], _vec[1])
+			if abs(_vec[1]) <= hole.diam / 2:
+				if self.center[0] - _semilength[0] <= hole.pos[0] <= self.center[0] + _semilength[0]:
+					return True
+			else:
+				return False
 		if _vec[0] ** 2 + _vec[1] ** 2 <= (hole.diam / 2) ** 2:
 			return True
+		if _vec[0] > 0.0:
+			_cx = self.center[0] + _semilength[0] - hole.pos[0]
 		else:
-			return False
+			_cx = self.center[0] - _semilength[0] - hole.pos[0]
+		if _vec[1] > 0.0:
+			_cy = self.center[1] + _semilength[1] - hole.pos[1]
+		else:
+			_cy = self.center[1] - _semilength[1] - hole.pos[1]
+		if _cx ** 2 + _cy ** 2 <= (hole.diam / 2) ** 2:
+			return True
+		return False
 
 	# function for debugging of picture mode
 	def point_in_square(self, pos):
@@ -270,6 +290,7 @@ class Plita(object):
 	# debugging function for pick test
 	def _pick_test(self, event):
 		self._areatree.point_in_square((event.xdata, event.ydata))._rec.set_color('g')
+		print(self._areatree.point_in_square((event.xdata, event.ydata))._center)
 
 	def save_pic(self, filename, weak_line=True, to_print=True, dimensions=True, wedges=True, holenames=True,
 				 dimension_random_position=True, debug=False) -> None:
@@ -432,7 +453,7 @@ class Plita(object):
 			fig, ax = plt.subplots()
 			if to_print:
 				# Тип штрихпунктирной линии (дает красивые результаты только для центральных линий)
-				lstyle = (-20, (40, 8, 8, 8))
+				lstyle = (-10, (20, 4, 4, 4))
 				# Для отвестия с максимальным диаметром предполагается пустая штриховка
 				max_hole_type = max(list(self._types_of_holes.items()), key=lambda a: a[1]._STD_DIAM)[1]
 				c1 = plt.Circle((0, 0), radius, color='black', fill=False, linewidth=0.5)
@@ -553,7 +574,7 @@ class Plita(object):
 		if np:
 			num_of_steps_linear = int(self.d) * dim
 			total_angle = final_angle - start_angle
-			num_of_steps_angle = math.ceil(dimfi * total_angle)
+			num_of_steps_angle = math.ceil(dimfi * total_angle) + 1
 			fi_max = 1.0
 			d = 0.0
 			d_max = 0.0
@@ -637,7 +658,7 @@ def fi_calc_macro(p: Plita, filename: str = "fig.png", fn: int = 7, acc_lin: flo
 	preliminary_angle = p.calc_fi()[1]
 	a = (math.floor(preliminary_angle) - 0.5, math.ceil(preliminary_angle) + 0.5)
 	print("fi:{res[0]:<7.5f}\tangle_deg:{res[1]:<6.2f}\tlength:{res[2]:<8.1f}".format(
-		res=p.calc_fi(a[0], a[1], 2 * acc_lin_, 4)))
+		res=p.calc_fi(a[0], a[1], 2 * acc_lin_, 16)))
 	print("s_assumption:{res[0]:<7.3f}\ns_calculated:{res[1]:<7.3f}\ns_total:{res[2]:<7.3f}".format(res=p.calc_s()))
 	p.save_pic(filename, **sp_kwargs)
 
