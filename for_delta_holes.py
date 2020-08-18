@@ -571,7 +571,7 @@ class Plita(object):
 	def factorise(self, deep=7):
 		self._areatree = AreaTree(-self.d / 2, self.d / 2, -self.d / 2, self.d / 2, self.holes, deep)
 
-	def calc_fi(self, start_angle=0.0, final_angle=180.0, dim=1, dimfi=1):
+	def calc_fi_geom(self, start_angle=0.0, final_angle=180.0, dim=1, dimfi=1):
 		if np:
 			num_of_steps_linear = int(self.d) * dim
 			total_angle = final_angle - start_angle
@@ -601,7 +601,44 @@ class Plita(object):
 			self._fi = fi_max
 			self._fi_ang = fi_max_angle
 			return fi_max, math.degrees(fi_max_angle), d_max
-
+	
+	def calc_fi_analytic(self, start_angle=0.0, final_angle=180.0, dim=1, dimfi=1):
+		if np:
+			total_angle = final_angle - start_angle
+			num_of_steps_angle = math.ceil(dimfi * total_angle) + 1
+			fi_max = 1.0
+			d = 0.0
+			d_max = 0.0
+			fi_max_angle = 0.0
+			ind_f = np.linspace(math.radians(start_angle), math.radians(final_angle), num_of_steps_angle,
+								dtype=np.float64)
+			for f in ind_f:
+				d = 0.0
+				for hole in self.holes:
+					#ay**2+by+c = 0
+					a = math.tan(f) ** 2 + 1.0
+					b = - 2.0 * (- hole.pos[1] * math.tan(f) + hole.pos[0])
+					c = hole.pos[0] ** 2 + hole.pos[1] ** 2 - (hole.diam /2) ** 2
+					discr = b ** 2 - 4 * a * c
+					if discr > 0.0:
+						discr = math.sqrt(discr)
+						y = (- b + discr ) / (2 * a), (- b - discr ) / (2 * a)
+						x = y[0] * math.tan(f), y[1] * math.tan(f)
+						d += math.sqrt((y[0] - y[1]) ** 2 + (x[0] - x[1]) ** 2)
+					else:
+						continue
+					k = (d / self.d)
+					fi_ = 1 / (1 + k + k * k)
+				if fi_ < fi_max:
+					fi_max = fi_
+					fi_max_angle = f
+					d_max = d
+			int_d = np.linspace(-self.d / 2, self.d / 2, 2, dtype=np.float64)
+			self._nline = np.array([(np.cos(fi_max_angle) * int_d), (np.sin(fi_max_angle) * int_d)])
+			self._fi = fi_max
+			self._fi_ang = fi_max_angle
+			return fi_max, math.degrees(fi_max_angle), d_max
+	
 	def calc_s(self):
 		self.s_i = 0.45 * self.d * math.sqrt(self.p / (self._fi * self.sigma))
 		if type(self.thinning) in (tuple, list):
@@ -644,7 +681,7 @@ class Hole:
 # с ПК DELTA можно взять точность вплоть до 0.1).
 
 
-def fi_calc_macro(p: Plita, filename: str = "fig.png", fn: int = 7, acc_lin: float = 1.0, sp_kwargs: dict = None) \
+def fi_calc_macro(p: Plita, filename: str = "fig.png", fn: int = 7, acc_lin: float = 1.0, sp_kwargs: dict = None, method=Plita.calc_fi_analytic) \
 		-> None:
 	if np:
 		if acc_lin <= 0.0:
@@ -657,10 +694,10 @@ def fi_calc_macro(p: Plita, filename: str = "fig.png", fn: int = 7, acc_lin: flo
 		print("factorisation...")
 		p.factorise(fn)
 		print("calculating fi..")
-		preliminary_angle = p.calc_fi()[1]
+		preliminary_angle = method(p)[1]
 		a = (math.floor(preliminary_angle) - 0.5, math.ceil(preliminary_angle) + 0.5)
 		print("fi:{res[0]:<7.5f}\tangle_deg:{res[1]:<6.2f}\tlength:{res[2]:<8.1f}".format(
-			res=p.calc_fi(a[0], a[1], 2 * acc_lin_, 16)))
+			res=method(p, a[0], a[1], 2 * acc_lin_, 16)))
 		print("s_assumption:{res[0]:<7.3f}\ns_calculated:{res[1]:<7.3f}\ns_total:{res[2]:<7.3f}".format(res=p.calc_s()))
 		p.save_pic(filename, **sp_kwargs)
 
