@@ -634,7 +634,7 @@ class Plita(object):
 					fi_max_angle = f
 					d_max = d
 			int_d = np.linspace(-self.d / 2, self.d / 2, 2, dtype=np.float64)
-			self._nline = np.array([(np.cos(fi_max_angle) * int_d), (np.sin(fi_max_angle) * int_d)])
+			self._nline = np.array([(np.cos(fi_max_angle) * int_d), (-np.sin(fi_max_angle) * int_d)])
 			self._fi = fi_max
 			self._fi_ang = fi_max_angle
 			return fi_max, math.degrees(fi_max_angle), d_max
